@@ -91,7 +91,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 
 
 	/**
-     * @expectedException \Exception
+     * @expectedException \LogicException
 	 */
 	public function testInvalidDependency()
 	{
