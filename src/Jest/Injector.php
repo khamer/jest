@@ -39,6 +39,34 @@ namespace Jest;
  */
 class Injector implements \ArrayAccess
 {
+	/**
+	 * Reflect a callable
+	 *
+	 * @param $callable Callable
+	 *     The callable to reflect
+	 *
+	 * @return ReflectionFunction|ReflectionMethod
+	 */
+	static protected function reflectCallable($callable)
+	{
+		if (is_string($callable) && strpos($callable, '::')) {
+			$callable = explode('::', $callable, 2);
+		}
+
+		if (is_a($callable, 'Closure')) {
+			$reflection = new \ReflectionFunction($callable);
+		} else if (is_object($callable)) {
+			$reflection = new \ReflectionMethod(get_class($callable), '__invoke');
+		} else if (is_array($callable) && count($callable) == 2) {
+			$reflection = new \ReflectionMethod((is_object($callable[0]) ? get_class($callable[0]) : $callable[0]), $callable[1]);
+		} else if (is_string($callable) && function_exists($callable)) {
+			$reflection = new \ReflectionFunction($callable);
+		}
+
+		return $reflection;
+	}
+
+
 	protected $factories = [];
 	protected $resolving = [];
 	protected $instances = [];
@@ -54,7 +82,7 @@ class Injector implements \ArrayAccess
 	 */
 	public function invoke(Callable $callable)
 	{
-		$reflection = $this->reflectCallable($callable);
+		$reflection = static::reflectCallable($callable);
 
 		$args = [];
 
@@ -77,7 +105,7 @@ class Injector implements \ArrayAccess
 	 *
 	 * @param $class string
 	 *     The type to check
-	 * 
+	 *
 	 * @return boolean
 	 */
 	public function offsetExists($class)
@@ -145,33 +173,5 @@ class Injector implements \ArrayAccess
 		} else {
 			throw new \InvalidArgumentException("Dependency supplied is neither a callable or an object");
 		}
-	}
-
-
-	/**
-	 * Reflect a callable
-	 *
-	 * @param $callable Callable
-	 *     The callable to reflect
-	 *
-	 * @return ReflectionFunction|ReflectionMethod
-	 */
-	protected function reflectCallable($callable)
-	{
-		if (is_string($callable) && strpos($callable, '::')) {
-			$callable = explode('::', $callable, 2);
-		}
-
-		if (is_a($callable, 'Closure')) {
-			$reflection = new \ReflectionFunction($callable);
-		} else if (is_object($callable)) {
-			$reflection = new \ReflectionMethod(get_class($callable), '__invoke');
-		} else if (is_array($callable) && count($callable) == 2) {
-			$reflection = new \ReflectionMethod((is_object($callable[0]) ? get_class($callable[0]) : $callable[0]), $callable[1]);
-		} else if (is_string($callable) && function_exists($callable)) {
-			$reflection = new \ReflectionFunction($callable);
-		}
-
-		return $reflection;
 	}
 }
