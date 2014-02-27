@@ -10,6 +10,9 @@
 
 namespace Jest;
 
+use InvalidArgumentException;
+use LogicException;
+
 /**
  * Jest, a dependency injector.
  *
@@ -37,7 +40,7 @@ namespace Jest;
  * @author  Jeff Turcotte <jeff.turcotte@gmail.com>
  * @version 1.0.0
  */
-class Injector implements \ArrayAccess
+class Injector
 {
 	/**
 	 * Reflect a callable
@@ -68,8 +71,10 @@ class Injector implements \ArrayAccess
 
 
 	protected $factories = [];
-	protected $resolving = [];
+	protected $classes   = [];
 	protected $instances = [];
+
+	protected $resolving = [];
 
 	/**
 	 * Invoke a callable and injects dependencies
@@ -90,13 +95,35 @@ class Injector implements \ArrayAccess
 			$type = $param->getClass()->getName();
 
 			if (in_array($type, $this->resolving)) {
-				throw new \LogicException("Recursive dependency: $type is currently instatiating.");
+				throw new LogicException("Recursive dependency: $type is currently instatiating.");
 			}
 
-			$args[] = ($param->allowsNull() && !isset($this[$type])) ? null : $this[$type];
+			$arg = $this->get($type);
+			$args[] = $param->allowsNull() && $arg === undefined ? null : $arg;
 		}
 
 		return call_user_func_array($callable, $args);
+	}
+
+	public function create($class)
+	{
+		$reflection = static::reflectCallable([$class, '__construct']);
+
+		$args = [];
+
+		foreach($reflection->getParameters() as $param) {
+			$type = $param->getClass()->getName();
+
+			if (in_array($type, $this->resolving)) {
+				throw new LogicException("Recursive dependency: $type is currently instatiating.");
+			}
+
+			$arg = $this->get($type);
+			$args[] = $param->allowsNull() && $arg === undefined ? null : $arg;
+		}
+
+		$reflection_class = $reflection->getDeclaringClass();
+		return $reflection_class->newInstanceArgs($args);
 	}
 
 
@@ -108,9 +135,9 @@ class Injector implements \ArrayAccess
 	 *
 	 * @return boolean
 	 */
-	public function offsetExists($class)
+	public function has($class)
 	{
-		return isset($this->factories[$class]);
+		return isset($this->factories[$class]) || isset($this->instances[$class]);
 	}
 
 
@@ -120,9 +147,10 @@ class Injector implements \ArrayAccess
 	 * @param $class string
 	 *     The class to unset
 	 */
-	public function offsetUnset($class)
+	public function remove($class)
 	{
 		unset($this->factories[$class]);
+		unset($this->instances[$class]);
 	}
 
 
@@ -135,21 +163,29 @@ class Injector implements \ArrayAccess
 	 * @return mixed
 	 *     The dependency/type value
 	 */
-	public function offsetGet($class)
+	public function get($class)
 	{
-		if (!isset($this->factories[$class]) && !isset($this->instances[$class])) {
-			throw new \InvalidArgumentException("$class has not been defined");
-		}
-
 		if (isset($this->instances[$class])) {
 			return $this->instances[$class];
 		}
 
-		array_push($this->resolving, $class);
-		$object = $this->invoke($this->factories[$class]);
-		array_pop($this->resolving);
+		if (isset($this->factories[$class])) {
+			array_push($this->resolving, $class);
+			$object = $this->invoke($this->factories[$class]);
+			array_pop($this->resolving);
 
-		return $object;
+			return $object;
+		}
+
+		if (isset($this->classes[$class])) {
+			array_push($this->resolving, $class);
+			$object = $this->create($this->factories[$class]);
+			array_pop($this->resolving);
+
+			return $object;
+		}
+
+		throw new InvalidArgumentException("$class has not been defined");
 	}
 
 
@@ -161,17 +197,34 @@ class Injector implements \ArrayAccess
 	 * @param $class string
 	 *     The class to register
 	 *
-	 * @param $factory mixed A callable or object
-	 *     The factory used to create the dependency or the instance of the dependency
+	 * @param $factory mixed A callable
+	 *     The factory used to create the dependency
 	 */
-	public function offsetSet($class, $factory)
+	public function addFactory($class, $factory)
 	{
 		if (is_callable($factory)) {
 			$this->factories[$class] = $factory;
-		} else if (is_object($factory)) {
-			$this->instances[$class] = $factory;
 		} else {
-			throw new \InvalidArgumentException("Dependency supplied is neither a callable or an object");
+			throw new InvalidArgumentException("Dependency supplied is not calflable.");
+		}
+	}
+
+	public function addInstance($instance)
+	{
+		if (is_object($instance)) {
+			$class = get_class($instance);
+			$this->instances[$class] = $instance;
+		} else {
+			throw new InvalidArgumentException("Instance is not an object.");
+		}
+	}
+
+	public function addClass($class)
+	{
+		if (is_string($class)) {
+			$this->classes[$class] = $class;
+		} else {
+			throw new InvalidArgumentException("Classname is not a string.");
 		}
 	}
 }

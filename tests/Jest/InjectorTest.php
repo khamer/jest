@@ -17,13 +17,14 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 	{
 		$injector = new Injector();
 
-		$injector['Closure'] = function() {
+		$injector->addFactory('Closure', function() {
 			return new Injector();
-		};
-		$injector['CallableObject'] = new DummyFactory();
+		});
 
-		$this->assertInstanceOf('Jest\\Injector', $injector['Closure']);
-		$this->assertInstanceOf('Jest\\Injector', $injector['CallableObject']);
+		$injector->addFactory('CallableObject', new DummyFactory());
+
+		$this->assertInstanceOf('Jest\\Injector', $injector->get('Closure'));
+		$this->assertInstanceOf('Jest\\Injector', $injector->get('CallableObject'));
 	}
 
 
@@ -33,7 +34,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 	public function testSetInvalidOffset()
 	{
 		$injector = new Injector();
-		$injector['Injector'] = 'Not Allowed';
+		$injector->addFactory('Injector', 'Not Allowed');
 	}
 
 
@@ -43,26 +44,27 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 	public function testGetInvalidOffset()
 	{
 		$injector = new Injector();
-		$injector['Invalid'];
+		$injector->get('Invalid');
 	}
 
 
 	public function testIsset()
 	{
 		$injector = new Injector();
-		$injector['Test'] = function() {};
+		$injector->addFactory('Test', function() {});
 
-		$this->assertEquals(TRUE, isset($injector['Test']));
+		$this->assertEquals(true, $injector->has('Test'));
 	}
 
 
 	public function testUnset()
 	{
 		$injector = new Injector();
-		$injector['Test'] = function() {};
-		unset($injector['Test']);
+		$injector->addFactory('Test', function() {});
 
-		$this->assertEquals(FALSE, isset($injector['Test']));
+		$injector->remove('Test');
+
+		$this->assertEquals(false, $injector->has('Test'));
 	}
 
 
@@ -71,8 +73,8 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 		$test = $this;
 
 		$injector = new Injector();
-		$injector['Jest\Injector'] = new DummyFactory();
-		$injector['Closure'] = function () { return function() {}; };
+		$injector->addFactory('Jest\Injector', new DummyFactory());
+		$injector->addFactory('Closure', function () { return function() {}; });
 
 		$injector->invoke(
 			function(\Closure $func, Injector $injector) use ($test) {
@@ -83,12 +85,33 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 
 		$dummyClass = new DummyClass(function(){});
 
-		$test->assertInstanceOf('Closure', $injector->invoke(array($dummyClass, 'method')));
-		$test->assertInstanceOf('Closure', $injector->invoke('globalFunction'));
-		$test->assertInstanceOf('Closure', $injector->invoke('\Jest\DummyClass::staticMethod'));
-		$test->assertInstanceOf('Closure', $injector->invoke(array('\Jest\DummyClass', 'staticMethod')));
+		$this->assertInstanceOf('Closure', $injector->invoke(array($dummyClass, 'method')));
+		$this->assertInstanceOf('Closure', $injector->invoke('globalFunction'));
+		$this->assertInstanceOf('Closure', $injector->invoke('\Jest\DummyClass::staticMethod'));
+		$this->assertInstanceOf('Closure', $injector->invoke(array('\Jest\DummyClass', 'staticMethod')));
 	}
 
+	public function testCreate()
+	{
+		$injector = new Injector();
+		$injector->addFactory('Closure', function () { return function() {}; });
+
+		$this->assertInstanceOf('\Jest\DummyClass', $injector->create('\Jest\DummyClass'));
+	}
+
+	public function testAddInstance()
+	{
+		$test = $this;
+
+		$injector = new Injector();
+		$injector->addInstance(function () { return function() {}; });
+
+		$injector->invoke(
+			function(\Closure $func) use ($test) {
+				$test->assertInstanceOf('Closure', $func);
+			}
+		);
+	}
 
 	/**
      * @expectedException \LogicException
@@ -96,7 +119,12 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 	public function testInvalidDependency()
 	{
 		$injector = new Injector();
-		$injector['Jest\Injector'] = function(Injector $injector) {};
+
+		$injector->addFactory('Closure', function() {
+			return new Injector();
+		});
+
+		$injector->addFactory('Jest\Injector', function(Injector $injector) {});
 
 		$injector->invoke(function(Injector $injector) {});
 	}
