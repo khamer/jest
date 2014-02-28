@@ -4,21 +4,21 @@
  * file that was distributed with this source code.
  */
 
-namespace Jest;
+namespace Zap;
 
 use InvalidArgumentException;
 use LogicException;
 
 /**
- * Jest, a dependency injector.
+ * Zap\Injector, a dependency injector.
  *
- * Jest uses type casting and reflection to determine
+ * Zap's Injector uses type casting and reflection to determine
  * which dependencies need to be injected into the
  * specified callable;
  *
  * Usage:
  *
- * $injector = new Jest\Injector();
+ * $injector = new Zap\Injector();
  *
  * $injector->addFactory('Request', function() {
  *     return new Request();
