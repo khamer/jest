@@ -4,7 +4,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Zap;
+namespace iMarc\Zap;
 
 use InvalidArgumentException;
 use LogicException;

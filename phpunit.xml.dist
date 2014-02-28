@@ -2,14 +2,14 @@
 
 <phpunit bootstrap="tests/bootstrap.php" colors="true">
     <testsuites>
-        <testsuite name="Jest Test Suite">
-            <directory>tests/Jest/</directory>
+        <testsuite name="Zap\Injector Test Suite">
+            <directory>tests/Injector/</directory>
         </testsuite>
     </testsuites>
 
     <filter>
         <whitelist>
-            <directory suffix=".php">src/Jest/</directory>
+            <directory suffix=".php">src/Injector/</directory>
         </whitelist>
     </filter>
 </phpunit>

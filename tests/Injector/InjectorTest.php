@@ -1,17 +1,11 @@
 <?php
+namespace Dummies;
 
-/*
- * This file is part of the Jest package.
- *
- * (c) Jeff Turcotte <jeff.turcotte@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+use PHPUnit_Framework_TestCase;
 
-namespace Jest;
+use iMarc\Zap\Injector;
 
-class InjectorTest extends \PHPUnit_Framework_TestCase
+class InjectorTest extends PHPUnit_Framework_TestCase
 {
 	public function testSetValidOffset()
 	{
@@ -23,8 +17,8 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 
 		$injector->addFactory('CallableObject', new DummyFactory());
 
-		$this->assertInstanceOf('Jest\\Injector', $injector->get('Closure'));
-		$this->assertInstanceOf('Jest\\Injector', $injector->get('CallableObject'));
+		$this->assertInstanceOf('iMarc\Zap\Injector', $injector->get('Closure'));
+		$this->assertInstanceOf('iMarc\Zap\Injector', $injector->get('CallableObject'));
 	}
 
 
@@ -73,13 +67,13 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 		$test = $this;
 
 		$injector = new Injector();
-		$injector->addFactory('Jest\Injector', new DummyFactory());
+		$injector->addFactory('iMarc\Zap\Injector', new DummyFactory());
 		$injector->addFactory('Closure', function () { return function() {}; });
 
 		$injector->invoke(
 			function(\Closure $func, Injector $injector) use ($test) {
 				$test->assertInstanceOf('Closure', $func);
-				$test->assertInstanceOf('Jest\\Injector', $injector);
+				$test->assertInstanceOf('iMarc\Zap\Injector', $injector);
 			}
 		);
 
@@ -87,8 +81,8 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 
 		$this->assertInstanceOf('Closure', $injector->invoke(array($dummyClass, 'method')));
 		$this->assertInstanceOf('Closure', $injector->invoke('globalFunction'));
-		$this->assertInstanceOf('Closure', $injector->invoke('\Jest\DummyClass::staticMethod'));
-		$this->assertInstanceOf('Closure', $injector->invoke(array('\Jest\DummyClass', 'staticMethod')));
+		$this->assertInstanceOf('Closure', $injector->invoke('Dummies\DummyClass::staticMethod'));
+		$this->assertInstanceOf('Closure', $injector->invoke(array('Dummies\DummyClass', 'staticMethod')));
 	}
 
 	public function testCreate()
@@ -96,7 +90,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 		$injector = new Injector();
 		$injector->addFactory('Closure', function () { return function() {}; });
 
-		$this->assertInstanceOf('\Jest\DummyClass', $injector->create('\Jest\DummyClass'));
+		$this->assertInstanceOf('Dummies\DummyClass', $injector->create('Dummies\DummyClass'));
 	}
 
 	public function testAddInstance()
@@ -116,12 +110,12 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 	public function testAddClass()
 	{
 		$injector = new Injector();
-		$injector->addClass('Jest\DummyClass');
+		$injector->addClass('Dummies\DummyClass');
 
 		$injector->addInstance(function () { return function() {}; });
 
-		$injector->invoke(function(\Jest\DummyClass $dummy) {
-			$this->assertInstanceOf('\Jest\DummyClass', $dummy);
+		$injector->invoke(function(DummyClass $dummy) {
+			$this->assertInstanceOf('Dummies\DummyClass', $dummy);
 		});
 	}
 
@@ -136,7 +130,7 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 			return new Injector();
 		});
 
-		$injector->addFactory('Jest\Injector', function(Injector $injector) {});
+		$injector->addFactory('iMarc\Zap\Injector', function(Injector $injector) {});
 
 		$injector->invoke(function(Injector $injector) {});
 	}
