@@ -113,6 +113,18 @@ class InjectorTest extends \PHPUnit_Framework_TestCase
 		);
 	}
 
+	public function testAddClass()
+	{
+		$injector = new Injector();
+		$injector->addClass('Jest\DummyClass');
+
+		$injector->addInstance(function () { return function() {}; });
+
+		$injector->invoke(function(\Jest\DummyClass $dummy) {
+			$this->assertInstanceOf('\Jest\DummyClass', $dummy);
+		});
+	}
+
 	/**
      * @expectedException \LogicException
 	 */

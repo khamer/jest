@@ -1,9 +1,5 @@
 <?php
 /*
- * This file is part of the Jest package.
- *
- * (c) Jeff Turcotte <jeff.turcotte@gmail.com>
- *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
@@ -24,21 +20,20 @@ use LogicException;
  *
  * $injector = new Jest\Injector();
  *
- * $injector['Request'] = function() {
+ * $injector->addFactory('Request', function() {
  *     return new Request();
- * };
+ * });
  *
- * $injector['Session'] = function(Request $req) {
- *     return new Session($req);
- * };
+ * $injector->addInstance('Session', new Session());
+ *
+ * $injector->addClass('Response');
  *
  * $value = $injector->invoke(function(Request $req, Session $sess) {
  *     return array($req, $sess);
  * })
  *
- * @package Jest
- * @author  Jeff Turcotte <jeff.turcotte@gmail.com>
- * @version 1.0.0
+ * $response = $injector->create('Response');
+ *
  */
 class Injector
 {
@@ -71,7 +66,6 @@ class Injector
 
 
 	protected $factories = [];
-	protected $classes   = [];
 	protected $instances = [];
 
 	protected $resolving = [];
@@ -177,14 +171,6 @@ class Injector
 			return $object;
 		}
 
-		if (isset($this->classes[$class])) {
-			array_push($this->resolving, $class);
-			$object = $this->create($this->factories[$class]);
-			array_pop($this->resolving);
-
-			return $object;
-		}
-
 		throw new InvalidArgumentException("$class has not been defined");
 	}
 
@@ -205,7 +191,7 @@ class Injector
 		if (is_callable($factory)) {
 			$this->factories[$class] = $factory;
 		} else {
-			throw new InvalidArgumentException("Dependency supplied is not calflable.");
+			throw new InvalidArgumentException("Dependency supplied is not callable.");
 		}
 	}
 
@@ -222,7 +208,9 @@ class Injector
 	public function addClass($class)
 	{
 		if (is_string($class)) {
-			$this->classes[$class] = $class;
+			$this->factories[$class] = function() use ($class) {
+				return $this->create($class);
+			};
 		} else {
 			throw new InvalidArgumentException("Classname is not a string.");
 		}
