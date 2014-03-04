@@ -16,8 +16,8 @@
 		}
 	],
 	"autoload": {
-		"psr-0": {
-			"iMarc\\Zap": "src/"
+		"psr-4": {
+			"iMarc\\Zap\\": "src/"
 		}
 	},
 	"require": {
