@@ -195,20 +195,27 @@ class Injector
 		}
 	}
 
-	public function addInstance($instance)
+	public function addInstance($class, $instance=null)
 	{
-		if (is_object($instance)) {
+		if ($instance === null) {
+			$instance = $class;
 			$class = get_class($instance);
+		}
+
+		if (is_object($instance)) {
 			$this->instances[$class] = $instance;
 		} else {
 			throw new InvalidArgumentException("Instance is not an object.");
 		}
 	}
 
-	public function addClass($class)
+	public function addClass($key_class, $class=null)
 	{
+		if ($class === null) {
+			$class = $key_class;
+		}
 		if (is_string($class)) {
-			$this->factories[$class] = function() use ($class) {
+			$this->factories[$key_class] = function() use ($class) {
 				return $this->create($class);
 			};
 		} else {
