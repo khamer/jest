@@ -8,6 +8,10 @@ namespace iMarc\Zap;
 
 use InvalidArgumentException;
 use LogicException;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionFunction;
+use ReflectionMethod;
 
 /**
  * Zap\Injector, a dependency injector.
@@ -52,13 +56,13 @@ class Injector
 		}
 
 		if (is_a($callable, 'Closure')) {
-			$reflection = new \ReflectionFunction($callable);
+			$reflection = new ReflectionFunction($callable);
 		} else if (is_object($callable)) {
-			$reflection = new \ReflectionMethod(get_class($callable), '__invoke');
+			$reflection = new ReflectionMethod(get_class($callable), '__invoke');
 		} else if (is_array($callable) && count($callable) == 2) {
-			$reflection = new \ReflectionMethod((is_object($callable[0]) ? get_class($callable[0]) : $callable[0]), $callable[1]);
+			$reflection = new ReflectionMethod((is_object($callable[0]) ? get_class($callable[0]) : $callable[0]), $callable[1]);
 		} else if (is_string($callable) && function_exists($callable)) {
-			$reflection = new \ReflectionFunction($callable);
+			$reflection = new ReflectionFunction($callable);
 		}
 
 		return $reflection;
@@ -101,7 +105,11 @@ class Injector
 
 	public function create($class)
 	{
-		$reflection = static::reflectCallable([$class, '__construct']);
+		try {
+			$reflection = static::reflectCallable([$class, '__construct']);
+		} catch (ReflectionException $e) {
+			return new $class();
+		}
 
 		$args = [];
 
@@ -116,7 +124,7 @@ class Injector
 			$args[] = $param->allowsNull() && $arg === undefined ? null : $arg;
 		}
 
-		$reflection_class = $reflection->getDeclaringClass();
+		$reflection_class = new ReflectionClass($class);
 		return $reflection_class->newInstanceArgs($args);
 	}
 
